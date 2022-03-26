@@ -1,0 +1,6 @@
+{
+    "name": "DeinName", 
+    "pass": "DeinPasswort",
+    "server": "DeinServer",
+    "port": "DeinPort"
+}
