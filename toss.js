@@ -3,5 +3,4 @@ async function toss(){
         await bot.lookAt(point)
         //bot.blockAt(point)
         await bot.toss(itemType, metadata, counts)
-        pay = true
     }
