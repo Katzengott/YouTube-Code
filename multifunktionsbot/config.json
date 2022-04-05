@@ -1,6 +1,12 @@
 {
-    "name": "DeinName", 
-    "pass": "DeinPasswort",
-    "server": "DeinServer",
-    "port": "DeinPort"
+    "name": "Moritz",
+    "pass": "1234",
+    "auth": "microsoft",
+
+    "master": "Rubinmaennchen",
+
+    "server": "localhost",
+    "port": "55743",
+
+    "deposit_Item": "true"
 }
