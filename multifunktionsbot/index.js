@@ -3,6 +3,7 @@ const {pathfinder,Movements,goals} = require("mineflayer-pathfinder");
 const pvp = require('mineflayer-pvp').plugin
 const armorManager = require('mineflayer-armor-manager')
 const autoeat = require("mineflayer-auto-eat")
+const chalk = require('chalk');
 
 
 
@@ -28,11 +29,11 @@ function createBot(CONFIG){
     })
 
     bot.on("autoeat_started", () => {
-      console.log("Auto Eat started!")
+      console.log(chalk.green("Auto Eat started!"))
     })
     
     bot.on("autoeat_stopped", () => {
-      console.log("Auto Eat stopped!")
+      console.log(chalk.yellow("Auto Eat stopped!"))
     })
 
     bot.on("health", () => {
@@ -67,8 +68,8 @@ function createBot(CONFIG){
 
         if(message.toLocaleLowerCase().startsWith('cmd')){
             const cmd = message.split(" ")
-            console.log(cmd[1])
-            console.log(cmd[2])
+            console.log(chalk.magenta(cmd[1]))
+            console.log(chalk.magenta(cmd[2]))
             if(cmd[1] === "Test"){
                 bot.chat('Test')
             }else if(cmd[1] === "follow"){
@@ -82,11 +83,13 @@ function createBot(CONFIG){
                 bot.chat('Ich kann dich nicht sehen')
                 return
               }
+              console.log(chalk.red(`Greift ${username} an!`))
 
               bot.chat('Bereite dich vor!')
               bot.pvp.attack(players.entity)
           }else{
                 bot.chat('Disen Befehl gibt es nicht!')
+                console.log(chalk.bgRedBright("Den Befehl gibt es nicht! " + username))
             }
         }
     })
@@ -98,4 +101,3 @@ require('fs').readFile("config.json", (err, content) => {
     else
     createBot(JSON.parse(content))
 })
-
