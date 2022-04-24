@@ -37,9 +37,20 @@ function createBot(CONFIG){
     })
 
     bot.on("health", () => {
-      if (bot.food === 20) bot.autoEat.disable()
+      //if (bot.food === 20) bot.autoEat.disable()
       // Disable the plugin if the bot is at 20 food points
-      else bot.autoEat.enable() // Else enable the plugin again
+      //else bot.autoEat.enable() // Else enable the plugin again
+
+      console.log(chalk.bgCyan('Teee'))
+      const filter = e => (e.type === 'mob' || e.type === 'player') && e.position.distanceTo(bot.entity.position) < 10 && e.mobType !== 'Armor Stand' && e !== bot.players['TaktischeKatze'].entity
+
+      const entity = bot.nearestEntity(filter)
+      if(entity === null)return
+      if(entity){
+        const sword = bot.inventory.items().find(item => item.name.includes('sword'))
+        if (sword) bot.equip(sword, 'hand')
+        bot.pvp.attack(entity);
+      }
     })
 
     //cmd
@@ -62,6 +73,9 @@ function createBot(CONFIG){
             console.log('Angekommen ')
         })
     }
+
+
+
 
     bot.on('chat', (username, message) => {
         if(username === bot.username) return
