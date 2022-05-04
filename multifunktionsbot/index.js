@@ -22,6 +22,10 @@ function createBot(CONFIG){
     bot.loadPlugin(pvp)
     bot.loadPlugin(armorManager)
 
+    let plays = null 
+    let guardPos = null
+    let save = false
+
     bot.once("spawn", () => {
       bot.autoEat.options.priority = "foodPoints"
       bot.autoEat.options.bannedFood = []
@@ -35,14 +39,14 @@ function createBot(CONFIG){
     bot.on("autoeat_stopped", () => {
       console.log(chalk.yellow("Auto Eat stopped!"))
     })
-
+/*
     bot.on("health", () => {
       //if (bot.food === 20) bot.autoEat.disable()
       // Disable the plugin if the bot is at 20 food points
       //else bot.autoEat.enable() // Else enable the plugin again
 
       console.log(chalk.bgCyan('Teee'))
-      const filter = e => (e.type === 'mob' || e.type === 'player') && e.position.distanceTo(bot.entity.position) < 10 && e.mobType !== 'Armor Stand' && e !== bot.players['TaktischeKatze'].entity
+      const filter = e => (e.type === 'mob' || e.type === 'player') && e.position.distanceTo(bot.entity.position) < 10 && e.mobType !== 'Armor Stand' 
 
       const entity = bot.nearestEntity(filter)
       if(entity === null)return
@@ -52,10 +56,70 @@ function createBot(CONFIG){
         bot.pvp.attack(entity);
       }
     })
+    */
+
+    bot.on('stoppedAttacking', () => {
+      bot.loadPlugin(autoeat)
+      if(guardPos){
+        moveToGuardPos()
+      }
+    })
+
+    bot.on('physicTick', () => {
+      if (bot.pvp.target) return
+      if (bot.pathfinder.isMoving()) return
+    
+      const entity = bot.nearestEntity()
+      if (entity) bot.lookAt(entity.position.offset(0, entity.height, 0))
+    })
+
+    bot.on('physicTick', () => {
+      if(!guardPos) return
+      const filter = e => e.type === 'mob' && e.position.distanceTo(bot.entity.position) < 6 && e.mobType && e.mobType !== 'Armor Stand'
+
+      const entity = bot.nearestEntity(filter)
+
+      if (entity) {
+        const sword = bot.inventory.items().find(item => item.name.includes('sword'))
+        if (sword) bot.equip(sword, 'hand')
+        const entity = bot.nearestEntity(filter)
+        bot.pvp.attack(entity)
+      }
+    })
 
     //cmd
 
     //follow
+
+    setInterval(function() { 
+      if(save === true){
+       
+      pos = plays.entity.position
+      guardPos = pos.clone()
+      if (!bot.pvp.target) {
+        moveToGuardPos()
+      }
+      }return;
+      
+    }, 250);
+
+    function guardFollowArea(){
+      pos = plays.entity.position
+      guardPos = pos.clone()
+      save = true
+
+      if (!bot.pvp.target) {
+        moveToGuardPos()
+      }
+    }
+
+    function moveToGuardPos(){
+      const mcData = require('minecraft-data')(bot.version)
+      bot.pathfinder.setMovements(new Movements(bot, mcData))
+      bot.scafoldingBlocks = ['stone', 'cobblestone', 'dirt']
+      bot.pathfinder.setGoal(new goals.GoalNear(guardPos.x, guardPos.y, guardPos.z, 2))
+  
+    }
     function follow_player(username){
         const player = bot.players[username]
 
@@ -90,6 +154,16 @@ function createBot(CONFIG){
                 const player = message.split(' ')[2]
                 bot.chat('Bot folgt  ' + player)
                 follow_player(player)
+            }else if(cmd[1] === "guard"){
+              const player = bot.players[username]
+    
+              if (!player) {
+                bot.chat("I can't see you.")
+              return
+              }
+              plays = bot.players[username]
+
+              guardFollowArea()
             }else if(cmd[1] === "fight"){
               const players = bot.players[username]
 
