@@ -26,6 +26,13 @@ function createBot(CONFIG){
     let guardPos = null
     let save = false
 
+    //chat
+    let followcmd 
+    let fightcmd 
+    let guardcmd
+    let eat 
+    let defense 
+
     bot.once("spawn", () => {
       bot.autoEat.options.priority = "foodPoints"
       bot.autoEat.options.bannedFood = []
@@ -39,24 +46,34 @@ function createBot(CONFIG){
     bot.on("autoeat_stopped", () => {
       console.log(chalk.yellow("Auto Eat stopped!"))
     })
-/*
+
     bot.on("health", () => {
-      //if (bot.food === 20) bot.autoEat.disable()
-      // Disable the plugin if the bot is at 20 food points
-      //else bot.autoEat.enable() // Else enable the plugin again
-
-      console.log(chalk.bgCyan('Teee'))
-      const filter = e => (e.type === 'mob' || e.type === 'player') && e.position.distanceTo(bot.entity.position) < 10 && e.mobType !== 'Armor Stand' 
-
-      const entity = bot.nearestEntity(filter)
-      if(entity === null)return
-      if(entity){
-        const sword = bot.inventory.items().find(item => item.name.includes('sword'))
-        if (sword) bot.equip(sword, 'hand')
-        bot.pvp.attack(entity);
+      if(eat === false){
+        bot.autoEat.disable()
       }
+      if(eat === true){
+        bot.autoEat.enable()
+        if (bot.food === 20) bot.autoEat.disable()
+       //Disable the plugin if the bot is at 20 food points
+        else bot.autoEat.enable() // Else enable the plugin again
+        
+      }else if(defense === true){
+        console.log(chalk.bgCyan('Defense'))
+        const filter = e => (e.type === 'mob' || e.type === 'player') && e.position.distanceTo(bot.entity.position) < 10 && e.mobType !== 'Armor Stand' 
+
+        const entity = bot.nearestEntity(filter)
+        if(entity === null)return
+        if(entity){
+          const sword = bot.inventory.items().find(item => item.name.includes('sword'))
+          if (sword) bot.equip(sword, 'hand')
+          bot.pvp.attack(entity);
+        }
+      }
+      
+
+      
     })
-    */
+    
 
     bot.on('stoppedAttacking', () => {
       bot.loadPlugin(autoeat)
@@ -68,18 +85,21 @@ function createBot(CONFIG){
     bot.on('physicTick', () => {
       if (bot.pvp.target) return
       if (bot.pathfinder.isMoving()) return
+      eat = true
     
       const entity = bot.nearestEntity()
       if (entity) bot.lookAt(entity.position.offset(0, entity.height, 0))
     })
 
     bot.on('physicTick', () => {
+     
       if(!guardPos) return
       const filter = e => e.type === 'mob' && e.position.distanceTo(bot.entity.position) < 6 && e.mobType && e.mobType !== 'Armor Stand'
 
       const entity = bot.nearestEntity(filter)
 
       if (entity) {
+        eat = false
         const sword = bot.inventory.items().find(item => item.name.includes('sword'))
         if (sword) bot.equip(sword, 'hand')
         const entity = bot.nearestEntity(filter)
@@ -127,6 +147,11 @@ function createBot(CONFIG){
             bot.chat("I can't see " + username )
             return
         }
+        followcmd = false
+        defense = false
+        fightcmd = false
+        guardcmd = false
+        eat = true
         const mcData = require("minecraft-data")(bot.version);
         const defaultMove = new Movements(bot, mcData);
         defaultMove.canDig = true
@@ -135,6 +160,12 @@ function createBot(CONFIG){
 
         bot.once("goal_reached", () => {
             console.log('Angekommen ')
+            bot.chat("Fertig")
+            followcmd = true
+            defense = true
+            fightcmd = true
+            guardcmd = true
+            eat = true
         })
     }
 
@@ -151,16 +182,28 @@ function createBot(CONFIG){
             if(cmd[1] === "Test"){
                 bot.chat('Test')
             }else if(cmd[1] === "follow"){
+              if(followcmd === false)return
+              if(fightcmd === false)return
+              if(guardcmd === false)return
                 const player = message.split(' ')[2]
                 bot.chat('Bot folgt  ' + player)
                 follow_player(player)
+
             }else if(cmd[1] === "guard"){
+              if(followcmd === false)return
+              if(fightcmd === false)return
+              if(guardcmd === false)return
               const player = bot.players[username]
     
               if (!player) {
                 bot.chat("I can't see you.")
               return
               }
+              defense = false
+              followcmd = false
+              fightcmd = false
+              guardcmd = false
+              eat = false
               plays = bot.players[username]
 
               guardFollowArea()
@@ -171,6 +214,11 @@ function createBot(CONFIG){
                 bot.chat('Ich kann dich nicht sehen')
                 return
               }
+              defense = false
+              followcmd = false
+              fightcmd = false
+              guardcmd = false
+              eat = false
               console.log(chalk.red(`Greift ${username} an!`))
 
               bot.chat('Bereite dich vor!')
