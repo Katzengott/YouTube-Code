@@ -1,9 +1,13 @@
 const mineflayer = require('mineflayer')
-const {pathfinder,Movements,goals} = require("mineflayer-pathfinder");
+const { pathfinder, Movements, goals } = require('mineflayer-pathfinder')
+const { GoalNear, GoalBlock, GoalFollow, GoalBreakBlock } = require('mineflayer-pathfinder').goals
 const pvp = require('mineflayer-pvp').plugin
 const armorManager = require('mineflayer-armor-manager')
 const autoeat = require("mineflayer-auto-eat")
+const radarPlugin = require('mineflayer-radar')(mineflayer)
 const chalk = require('chalk');
+const delay = require('util').promisify(setTimeout)
+const vec3 = require('vec3')
 
 
 
@@ -15,12 +19,21 @@ function createBot(CONFIG){
         port: CONFIG.port, 
         version: "1.17.1",
         master: CONFIG.master,   //dein Minecraft Name
-        //auth: CONFIG.auth 
+        //auth: CONFIG.auth, 
+        viewDistance: 64
     })
+    
     bot.loadPlugin(pathfinder)
     bot.loadPlugin(autoeat)
     bot.loadPlugin(pvp)
     bot.loadPlugin(armorManager)
+
+    var options = {
+      host: 'localhost', // optional
+      port: 58900,         // optional
+    }
+    // install the plugin
+    radarPlugin(bot, options);
 
     let plays = null 
     let guardPos = null
@@ -32,6 +45,9 @@ function createBot(CONFIG){
     let guardcmd
     let eat 
     let defense 
+
+
+
 
     bot.once("spawn", () => {
       bot.autoEat.options.priority = "foodPoints"
@@ -169,8 +185,93 @@ function createBot(CONFIG){
         })
     }
 
+    async function harvest(count, crops){
+      const mcData = require('minecraft-data')(bot.version)
+      const defaultMove = new Movements(bot, mcData)
+      defaultMove.allow1by1towers = true
+      const scaffoldingBlocks = ['dirt', 'cobblestone', 'netherrack']
+
+      for (let i = 0; i < scaffoldingBlocks.length; i++) {
+        defaultMove.scafoldingBlocks.push(mcData.itemsByName[scaffoldingBlocks[i]].id)
+      }
+
+      let crop = []
+
+      if(!count || !crop){
+        bot.chat("Der Befehl wurde falsch benutzt: cmd farmin count type")
+        return
+      }
+
+      const checkCount = parseInt(count)
+
+      if(isNaN(checkCount)){
+        bot.chat("Der Befehl wurde falsch benutzt: cmd farmin count type")
+        return
+      }
+
+      if(crops !== 'carrot'){
+        bot.chat("Der Befehl wurde falsch benutzt: cmd farmin count type")
+        return
+      }
+
+      if(crops === 'carrot') crop = ['carrots', 'carrot']
+
+      const harvestBlock = bot.findBlocks({
+        matching: block => block.name === crop[0] && block.metadata === 7,
+        count: checkCount,
+        maxDistance: 64
+      })
+
+      if(harvestBlock[0]){
+        console.log("Ich hab "+ harvestBlock.length + " " + crop[0] + " gefunden")
+
+        for(let i = 0; i < harvestBlock.length; i++){
+
+          const a = bot.blockAt(harvestBlock[i])
+          const {x,y,z} = a.position
+          const goal = new GoalBreakBlock(x, y, z, bot)
+          const collect = new GoalBlock(x, y, z)
+          const harvestMove = new Movements(bot, mcData)
+          harvestMove.allowParkour = false
+          harvestMove.blocksToAvoid.add(mcData.blocksByName.water.id)
+          bot.pathfinder.setMovements(harvestMove)
+
+          await bot.pathfinder.goto(goal).catch(() => {})
+          await bot.lookAt(a.position)
+          await breakCrop()
+
+          await bot.pathfinder.goto(collect).catch(() => {})
+
+          async function breakCrop(){
+            await bot.dig(a).catch(err => {
+              console.log(chalk.bgCyanBright(err))
+            })
+
+            const seed = bot.inventory.items().find(item => item.name === crop[1])
+            await delay(1000)
+            if (seed) await bot.equip(seed, 'hand')
+            else return
+
+            const farmBlock = bot.blockAt(a.position.offset(0, -1, 0))
+            await delay(500)
+            await bot.placeBlock(farmBlock, vec3(0, 1, 0)).catch(err => {
+              console.log(chalk.bgCyanBright(err))
+            })
+          };
+
+          if(harvestBlock.length - 1 === i){
+            bot.chat('Bin fertig')
+            console.log('bin fertig')
+
+          }
+        }
+      }else {
+        bot.chat('Konnte keine ' + crop[0] + " finden!")
+      }
+    }
 
 
+    
 
     bot.on('chat', (username, message) => {
         if(username === bot.username) return
@@ -189,6 +290,26 @@ function createBot(CONFIG){
                 bot.chat('Bot folgt  ' + player)
                 follow_player(player)
 
+            }else if(cmd[1] === "farming"){
+              harvest(cmd[2],cmd[3])
+            }else if(cmd[1] === "guard"){
+              if(followcmd === false)return
+              if(fightcmd === false)return
+              if(guardcmd === false)return
+              const player = bot.players[username]
+    
+              if (!player) {
+                bot.chat("I can't see you.")
+              return
+              }
+              defense = false
+              followcmd = false
+              fightcmd = false
+              guardcmd = false
+              eat = false
+              plays = bot.players[username]
+
+              guardFollowArea()
             }else if(cmd[1] === "guard"){
               if(followcmd === false)return
               if(fightcmd === false)return
