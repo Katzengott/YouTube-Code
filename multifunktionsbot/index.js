@@ -4,7 +4,6 @@ const { GoalNear, GoalBlock, GoalFollow, GoalBreakBlock } = require('mineflayer-
 const pvp = require('mineflayer-pvp').plugin
 const armorManager = require('mineflayer-armor-manager')
 const autoeat = require("mineflayer-auto-eat")
-const radarPlugin = require('mineflayer-radar')(mineflayer)
 const chalk = require('chalk');
 const delay = require('util').promisify(setTimeout)
 const vec3 = require('vec3')
@@ -20,20 +19,12 @@ function createBot(CONFIG){
         version: "1.17.1",
         master: CONFIG.master,   //dein Minecraft Name
         //auth: CONFIG.auth, 
-        viewDistance: 64
     })
     
     bot.loadPlugin(pathfinder)
     bot.loadPlugin(autoeat)
     bot.loadPlugin(pvp)
     bot.loadPlugin(armorManager)
-
-    var options = {
-      host: 'localhost', // optional
-      port: 58900,         // optional
-    }
-    // install the plugin
-    radarPlugin(bot, options);
 
     let plays = null 
     let guardPos = null
